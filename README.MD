@@ -4,7 +4,6 @@ This is a FxpGunZ specific Replay-File (.gzr) parser, extracting useful and impo
 See: Parsing.MD for parsing info guide.
 
 *Sharp, CO5INE, unban me from your Discord and unmute me in-game, else your Server is DOOMED. I repeat, DOOMED. I will ask Lil B to curse this server for eternity, leaving it to perish.*
-[![Watch the demo](https://img.youtube.com/vi/mudDAN_ao9Y/maxresdefault.jpg)](https://www.youtube.com/watch?v=mudDAN_ao9Y)
 
 ## Features
 - Player stat profiling for all users that appear within the files (output/player_stats.json)
