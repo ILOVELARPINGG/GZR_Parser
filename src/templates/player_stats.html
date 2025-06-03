@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Profile</title>
+    <link rel="stylesheet" href="../static/css/player_stats.css">
+    <link rel="stylesheet" href="../static/css/settings.css">
+    <script src="../static/js/settings.js"></script>
+</head>
+<body>
+    <div id="Socials">
+        <a href="/about">About</a>
+        <a href="/">Home</a>
+        <a href="/stats">Stats</a>
+        <button class="settings-btn" onclick="openSettings()">Settings</button>
+    </div>
+
+    <div id="settingsModal" class="modal-backdrop">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title">Settings</h2>
+                <button class="close-btn" onclick="closeSettings()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div id="messageContainer"></div>
+                
+                <form id="settingsForm" onsubmit="saveSettings(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="username">Username</label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            class="form-input" 
+                            placeholder="Enter your username"
+                            required
+                        >
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="submit" form="settingsForm" class="btn btn-primary" id="saveBtn">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="player-profile-container">
+        <a href="/stats" class="back-button">← Back to Stats</a>
+        
+        <div id="playerContent">
+
+        </div>
+        
+        <div id="errorMessage" class="error-message" style="display: none;">
+            Player not found or data unavailable.
+        </div>
+    </div>
+
+    <script>
+        // Get player name from URL (/player/{username}))
+        const pathParts = window.location.pathname.split('/');
+        const playerName = decodeURIComponent(pathParts[pathParts.length - 1]);
+        
+        async function loadPlayerData() {
+            try {
+                const response = await fetch('/player_stats');
+                if (!response.ok) {
+                    throw new Error('Failed to load player stats');
+                }
+                
+                const data = await response.json();
+                
+                let player = null;
+                for (const id in data) {
+                    if (data[id].name === playerName) {
+                        player = data[id];
+                        player.id = id;
+                        break;
+                    }
+                }
+                
+                if (!player) {
+                    document.getElementById('errorMessage').style.display = 'block';
+                    return;
+                }
+                
+                displayPlayerProfile(player);
+                
+            } catch (error) {
+                console.error('Error loading player data:', error);
+                document.getElementById('errorMessage').style.display = 'block';
+            }
+        }
+        
+        function displayPlayerProfile(player) {
+            const winRate = player.win_rate.toFixed(1);
+            const lossRate = player.matches_played > 0 ? ((player.losses / player.matches_played) * 100).toFixed(1) : '0.0';
+            const drawRate = player.matches_played > 0 ? ((player.draws / player.matches_played) * 100).toFixed(1) : '0.0';
+            
+            let matchHistoryHtml = '';
+            if (player.match_history && player.match_history.length > 0) {
+                matchHistoryHtml = `
+                    <div class="match-history">
+                        <h3>Match History</h3>
+                        <div class="match-header">
+                            <span>Match</span>
+                            <span>Map</span>
+                            <span>Team</span>
+                            <span>Result</span>
+                            <span>Damage</span>
+                            <span>Avg DMG</span>
+                        </div>
+                        ${player.match_history.map(match => {
+                            const date = new Date(match.date).toLocaleDateString();
+                            const resultClass = match.result.toLowerCase();
+                            const teamClass = match.team.toLowerCase();
+                            
+                            return `
+                                <div class="match-entry" onclick="window.location.href='/match/${match.match_id}'">
+                                    <span class="match-id">#${String(match.match_id).padStart(3, '0')}</span>
+                                    <span>${match.map}</span>
+                                    <span class="team-badge team-${teamClass}">${match.team}</span>
+                                    <span class="match-result ${resultClass}">${match.result}</span>
+                                    <span>${match.damage}</span>
+                                    <span>${match.average_damage.toFixed(1)}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+            
+            const content = `
+                <div class="player-header">
+                    <h1 class="player-name">${player.name}</h1>
+                </div>
+                
+                <div class="player-summary">
+                    <div class="summary-card">
+                        <div class="summary-value">${player.matches_played}</div>
+                        <div class="summary-label">Total Matches</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">${winRate}%</div>
+                        <div class="summary-label">Win Rate</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">${player.total_damage}</div>
+                        <div class="summary-label">Total Damage</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">${player.total_average_damage.toFixed(1)}</div>
+                        <div class="summary-label">Avg Damage</div>
+                    </div>
+                </div>
+                
+                <div class="detailed-stats">
+                    <h3>Detailed Statistics</h3>
+                    <div class="stat-row">
+                        <span>Matches Played</span>
+                        <span>${player.matches_played}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Rounds Played</span>
+                        <span>${player.rounds_played}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Wins</span>
+                        <span>${player.wins}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Losses</span>
+                        <span>${player.losses}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Draws</span>
+                        <span>${player.draws}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Win Rate</span>
+                        <span>${winRate}%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Loss Rate</span>
+                        <span>${lossRate}%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Draw Rate</span>
+                        <span>${drawRate}%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Total Damage Dealt</span>
+                        <span>${player.total_damage}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Average Damage per Match</span>
+                        <span>${player.total_average_damage.toFixed(1)}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>MVP Awards</span>
+                        <span>${player.mvp_count}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>RVP Awards</span>
+                        <span>${player.rvp_count}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Red Team Games</span>
+                        <span>${player.team_counts.Red}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Blue Team Games</span>
+                        <span>${player.team_counts.Blue}</span>
+                    </div>
+                </div>
+                
+                ${matchHistoryHtml}
+            `;
+            
+            document.getElementById('playerContent').innerHTML = content;
+        }
+        
+        // Load player data when page loads.
+        document.addEventListener('DOMContentLoaded', loadPlayerData);
+    </script>
+</body>
+</html>

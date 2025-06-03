@@ -1,0 +1,360 @@
+body {
+    background-color: black;
+    font-family: monospace;
+    color: #dddddd;
+    margin: 0;
+    scroll-behavior: smooth;
+}
+
+#Socials {
+    background: #0f0f0f;
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid #333;
+    margin-bottom: 20px;
+}
+
+#Socials a {
+    color: #ffffff;
+    text-decoration: none;
+    margin: 0 15px;
+    transition: color 0.2s ease;
+}
+
+#Socials a:hover {
+    color: #007bff;
+}
+
+.round-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 20px 60px;
+    font-family: monospace;
+}
+
+.round-header {
+    background: linear-gradient(145deg, #0c0c0c, #0a0a0a);
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 30px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4),
+                inset 0 0 10px rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(99, 99, 99, 0.25);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.round-header:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5),
+                inset 0 0 12px rgba(255, 255, 255, 0.07);
+}
+
+.round-title {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 400;
+    font-family: monospace;
+}
+
+.round-subtitle {
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
+    font-family: monospace;
+}
+
+.round-score {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 20px 0;
+    color: #ffffff;
+    font-family: monospace;
+}
+
+.round-winner {
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+    margin: 10px 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-family: monospace;
+}
+
+.player-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.player-link:hover {
+    color: #4da6ff;
+    text-decoration: underline;
+}
+
+.player-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.round-winner.red {
+    background: rgba(220, 53, 69, 0.2);
+    color: #ff6b6b;
+    border-color: rgba(220, 53, 69, 0.3);
+}
+
+.round-winner.blue {
+    background: rgba(0, 123, 255, 0.2);
+    color: #4da6ff;
+    border-color: rgba(0, 123, 255, 0.3);
+}
+
+.rvp-card {
+    background: rgba(15, 15, 15, 0.5);
+    color: #ffffff;
+    padding: 20px;
+    border-radius: 4px;
+    text-align: center;
+    margin: 20px 0;
+    border: 1px solid #333;
+    transition: all 0.2s ease;
+}
+
+.rvp-card:hover {
+    background: rgba(30, 30, 30, 0.7);
+    border-color: #555;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.rvp-title {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 400;
+    font-family: monospace;
+    color: #ffffff;
+    border-bottom: 1px solid #444;
+    padding-bottom: 8px;
+}
+
+.rvp-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 10px 0;
+    color: #ffffff;
+    font-family: monospace;
+}
+
+.rvp-damage {
+    font-size: 1rem;
+    opacity: 0.9;
+    color: #aaa;
+    font-family: monospace;
+}
+
+.team-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.team-card {
+    background: rgba(15, 15, 15, 0.5);
+    border-radius: 4px;
+    padding: 20px;
+    border: 1px solid #333;
+    transition: all 0.2s ease;
+}
+
+.team-card:hover {
+    background: rgba(30, 30, 30, 0.7);
+    border-color: #555;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.team-card.red {
+    border-left: 3px solid #ff6b6b;
+}
+
+.team-card.blue {
+    border-left: 3px solid #4da6ff;
+}
+
+.team-title {
+    font-size: 1.1rem;
+    font-weight: 400;
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-align: center;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 8px;
+    font-family: monospace;
+}
+
+.team-title.red {
+    color: #ff6b6b;
+}
+
+.team-title.blue {
+    color: #4da6ff;
+}
+
+.player-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.player-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    margin: 0;
+    background: rgba(20, 20, 20, 0.8);
+    border-radius: 4px;
+    border-left: 3px solid;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.player-row:hover {
+    transform: translateX(3px);
+    background: rgba(35, 35, 35, 0.9);
+}
+
+.player-row.red {
+    border-left-color: #ff6b6b;
+}
+
+.player-row.blue {
+    border-left-color: #4da6ff;
+}
+
+.player-name {
+    font-weight: bold;
+    flex: 1;
+    color: #ffffff;
+    font-family: monospace;
+    font-size: 0.95rem;
+}
+
+.player-damage {
+    font-weight: bold;
+    color: #ffffff;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.damage-gain {
+    font-size: 0.75rem;
+    color: #5cb85c;
+    margin-left: 10px;
+    font-family: monospace;
+}
+
+.back-buttons {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.back-button {
+    display: inline-block;
+    padding: 10px 20px;
+    background: rgba(15, 15, 15, 0.8);
+    color: #c4c4c4;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    border: 1px solid #333;
+    font-family: monospace;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.back-button:hover {
+    background: rgba(30, 30, 30, 0.9);
+    color: #fff;
+    border-color: #555;
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+.loading {
+    text-align: center;
+    padding: 50px;
+    font-size: 1rem;
+    color: #aaa;
+    font-family: monospace;
+}
+
+.error {
+    text-align: center;
+    padding: 50px;
+    color: #ff6b6b;
+    font-family: monospace;
+}
+
+@media (max-width: 768px) {
+    .round-container {
+        padding: 30px 15px 50px;
+    }
+
+    .round-header {
+        padding: 20px;
+    }
+
+    .round-title {
+        font-size: 1.5rem;
+    }
+
+    .round-score {
+        font-size: 2rem;
+    }
+
+    .team-section {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .back-buttons {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .round-container {
+        padding: 20px 10px 40px;
+    }
+
+    .round-header {
+        padding: 15px;
+    }
+
+    .round-title {
+        font-size: 1.3rem;
+    }
+
+    .round-score {
+        font-size: 1.8rem;
+    }
+}

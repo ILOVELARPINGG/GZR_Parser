@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stats</title>
+    <link rel="stylesheet" href="../static/css/stats.css">
+    <link rel="stylesheet" href="../static/css/settings.css">
+    <script src="../static/js/settings.js"></script>
+</head>
+<body>
+    <div id="Socials">
+        <a href="/about">About</a>
+        <a href="/">Home</a>
+        <a href="/stats">Stats</a>
+        <button class="settings-btn" onclick="openSettings()">Settings</button>
+    </div>
+
+    <div id="settingsModal" class="modal-backdrop">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title">Settings</h2>
+                <button class="close-btn" onclick="closeSettings()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div id="messageContainer"></div>
+                
+                <form id="settingsForm" onsubmit="saveSettings(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="username">Username</label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            class="form-input" 
+                            placeholder="Enter your username"
+                            required
+                        >
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="submit" form="settingsForm" class="btn btn-primary" id="saveBtn">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-container">
+        <h2>Player Statistics</h2>
+        
+        <div class="search-section">
+            <input type="text" class="search-bar" placeholder="Search players..." id="searchInput">
+        </div>
+
+        <div class="user-profile" id="userProfile">
+            <div class="profile-header">
+                <div class="profile-info">
+                    <h3 id="profileName">?</h3>
+                    <div class="win-rate" id="profileWinRate">Win Rate: ?</div>
+                </div>
+            </div>
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <span class="stat-value" id="profileWins">?</span>
+                    <div class="stat-label">Wins</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="profileLosses">?</span>
+                    <div class="stat-label">Losses</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="profileTotalDamage">?</span>
+                    <div class="stat-label">Total Damage</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="profileAvgDamage">?</span>
+                    <div class="stat-label">Avg Damage</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="profileMVP">?</span>
+                    <div class="stat-label">MVP</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="profileRVP">?</span>
+                    <div class="stat-label">RVP</div>
+                </div>
+            </div>
+            <div class="profile-note" style="text-align: center; margin-top: 10px; color: #666; font-style: italic;">
+                Please set your username in settings to view your personal stats
+            </div>
+        </div>
+
+        <div class="users-section">
+            <h3>All Players</h3>
+            
+            <div class="users-header-row">
+                <span>Player</span>
+                <span>Matches</span>
+                <span>W/L</span>
+                <span>Win %</span>
+                <span>Total Damage</span>
+                <span>Avg Damage</span>
+            </div>
+
+            <div id="usersList">
+
+            </div>
+
+            <!-- Pagination - Makes discovery easier, less cramped, easier on eyes etc. -->
+            <div id="paginationControls">
+                <button id="prevPage">Prev</button>
+                <span id="pageIndicator"></span>
+                <button id="nextPage">Next</button>
+            </div>
+
+            <div id="noEntriesMessage" style="display: none; text-align: center; padding: 20px; color: #666;">
+                No entries found, start parsing files from the index page.
+            </div>
+        </div>
+    </div>
+
+<script>
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    let allPlayers = [];
+    const currentUser = "{{ settings.username }}";
+
+    // Load settings. (Username)
+    async function loadSettings() {
+        try {
+            const response = await fetch('/settings');
+            if (response.ok) {
+                const settings = await response.json();
+                if (settings.username) {
+                    currentUser = settings.username;
+                }
+            }
+        } catch (error) {
+            console.log('Settings not found or error loading settings');
+        }
+    }
+
+    async function loadPlayerStats() {
+        try {
+            const response = await fetch('/player_stats');
+            if (!response.ok) {
+                throw new Error('Failed to load player stats');
+            }
+            const data = await response.json();
+            
+            allPlayers = Object.keys(data).map(id => {
+                const player = data[id];
+                return {
+                    id: id,
+                    name: player.name,
+                    matches: player.matches_played,
+                    wins: player.wins,
+                    losses: player.losses,
+                    draws: player.draws,
+                    total_damage: player.total_damage,
+                    avg_damage: player.total_average_damage,
+                    mvp: player.mvp_count,
+                    rvp: player.rvp_count,
+                    win_rate: player.win_rate,
+                    rounds_played: player.rounds_played,
+                    team_counts: player.team_counts,
+                    match_history: player.match_history
+                };
+            });
+            
+            if (allPlayers.length === 0) {
+                document.getElementById('noEntriesMessage').style.display = 'block';
+                return;
+            }
+            
+            populateUsersList();
+            updateUserProfile();
+            
+        } catch (error) {
+            console.error('Error loading player stats:', error);
+            document.getElementById('noEntriesMessage').style.display = 'block';
+        }
+    }
+
+    function populateUsersList() {
+        const usersList = document.getElementById('usersList');
+        usersList.innerHTML = '';
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const visiblePlayers = allPlayers.slice(startIndex, endIndex);
+
+        visiblePlayers.forEach(player => {
+            const userEntry = document.createElement('div');
+            userEntry.className = 'user-entry';
+            userEntry.setAttribute('data-player', player.name);
+
+            const winRate = player.win_rate.toFixed(1);
+            let winRateClass = 'win-rate-average';
+            if (parseFloat(winRate) >= 70) winRateClass = 'win-rate-good';
+            else if (parseFloat(winRate) < 50) winRateClass = 'win-rate-poor';
+
+            userEntry.innerHTML = `
+                <div class="user-fields">
+                    <span>${player.name}</span>
+                    <span>${player.matches}</span>
+                    <span>${player.wins}/${player.losses}</span>
+                    <span class="${winRateClass}">${winRate}%</span>
+                    <span>${player.total_damage}</span>
+                    <span>${player.avg_damage.toFixed(1)}</span>
+                </div>
+            `;
+
+            userEntry.addEventListener('click', function () {
+                const playerName = player.name;
+                window.location.href = `/player/${encodeURIComponent(playerName)}`;
+            });
+
+            usersList.appendChild(userEntry);
+        });
+
+        updatePaginationControls();
+    }
+
+    function updatePaginationControls() {
+        const totalPages = Math.ceil(allPlayers.length / itemsPerPage);
+        const pageIndicator = document.getElementById('pageIndicator');
+        const prevBtn = document.getElementById('prevPage');
+        const nextBtn = document.getElementById('nextPage');
+
+        pageIndicator.textContent = `${currentPage}/${totalPages}`;
+
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages;
+    }
+
+    document.getElementById('prevPage').addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            populateUsersList();
+        }
+    });
+
+    document.getElementById('nextPage').addEventListener('click', () => {
+        const totalPages = Math.ceil(allPlayers.length / itemsPerPage);
+        if (currentPage < totalPages) {
+            currentPage++;
+            populateUsersList();
+        }
+    });
+
+    function updateUserProfile() {
+        if (!currentUser) {
+            return;
+        }
+
+        const userStats = allPlayers.find(player => player.name === currentUser);
+        if (!userStats) {
+            return;
+        }
+
+        // Update profile with user's stats.
+        document.getElementById('profileName').textContent = userStats.name;
+        document.getElementById('profileWins').textContent = userStats.wins;
+        document.getElementById('profileLosses').textContent = userStats.losses;
+        document.getElementById('profileTotalDamage').textContent = userStats.total_damage;
+        document.getElementById('profileAvgDamage').textContent = userStats.avg_damage.toFixed(1);
+        document.getElementById('profileMVP').textContent = userStats.mvp;
+        document.getElementById('profileRVP').textContent = userStats.rvp;
+        
+        document.getElementById('profileWinRate').textContent = `Win Rate: ${userStats.win_rate.toFixed(1)}%`;
+        
+        document.querySelector('.profile-note').style.display = 'none';
+        
+        // Make the profile name clickable to go to their player page. /player/{username}
+        const profileNameElement = document.getElementById('profileName');
+        profileNameElement.style.cursor = 'pointer';
+        profileNameElement.style.textDecoration = 'underline';
+        
+        profileNameElement.addEventListener('click', function() {
+            window.location.href = `/player/${encodeURIComponent(currentUser)}`;
+        });
+    }
+
+    const searchInput = document.getElementById('searchInput');
+
+    searchInput.addEventListener('input', function () {
+        const searchTerm = this.value.toLowerCase();
+
+        if (searchTerm === '') {
+            currentPage = 1;
+            populateUsersList();
+            document.getElementById('paginationControls').style.display = 'block';
+            return;
+        }
+
+        const filteredPlayers = allPlayers.filter(player =>
+            player.name.toLowerCase().includes(searchTerm)
+        );
+
+        renderFilteredPlayers(filteredPlayers);
+        document.getElementById('paginationControls').style.display = 'none';
+    });
+
+    function renderFilteredPlayers(filteredList) {
+        const usersList = document.getElementById('usersList');
+        usersList.innerHTML = '';
+
+        filteredList.forEach(player => {
+            const userEntry = document.createElement('div');
+            userEntry.className = 'user-entry';
+            userEntry.setAttribute('data-player', player.name);
+
+            const winRate = player.win_rate.toFixed(1);
+            let winRateClass = 'win-rate-average';
+            if (parseFloat(winRate) >= 70) winRateClass = 'win-rate-good';
+            else if (parseFloat(winRate) < 50) winRateClass = 'win-rate-poor';
+
+            userEntry.innerHTML = `
+                <div class="user-fields">
+                    <span>${player.name}</span>
+                    <span>${player.matches}</span>
+                    <span>${player.wins}/${player.losses}</span>
+                    <span class="${winRateClass}">${winRate}%</span>
+                    <span>${player.total_damage}</span>
+                    <span>${player.avg_damage.toFixed(1)}</span>
+                </div>
+            `;
+
+            userEntry.addEventListener('click', function () {
+                const playerName = player.name;
+                window.location.href = `/player/${encodeURIComponent(playerName)}`;
+            });
+
+            usersList.appendChild(userEntry);
+        });
+    }
+
+    // Load data when page loads.
+    document.addEventListener('DOMContentLoaded', async function() {
+        await loadSettings();
+        await loadPlayerStats();
+    });
+
+    // Called in main.
+    function setCurrentUser(username) {
+        currentUser = username;
+        updateUserProfile();
+    }
+    </script>
+</body>
+</html>

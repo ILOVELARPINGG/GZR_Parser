@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../static/css/index.css">
+    <link rel="stylesheet" href="../static/css/settings.css">
+    <title>GZR Parser</title>
+</head>
+<body>
+    <div id="Socials">
+        <a href="/about">About</a>
+        <a href="/">Home</a>
+        <a href="/stats">Stats</a>
+        <button class="settings-btn" onclick="openSettings()">Settings</button>
+    </div>
+
+    <div id="settingsModal" class="modal-backdrop">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title">Settings</h2>
+                <button class="close-btn" onclick="closeSettings()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div id="messageContainer"></div>
+                
+                <form id="settingsForm" onsubmit="saveSettings(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="username">Username</label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            class="form-input" 
+                            placeholder="Enter your username"
+                            required
+                        >
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="submit" form="settingsForm" class="btn btn-primary" id="saveBtn">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-section">
+        <div id="drop-area" class="drop-area">
+            <input type="file" id="fileInput" accept=".gzr">
+            <p>Drop Ladder Replay</p>
+        </div>
+        <div class="scroll-indicator" onclick="scrollToLogs()">▼</div>
+    </div>
+
+    <div id="logs" class="log-history">
+        <h2>Recent Uploads</h2>
+        <div class="log-header-row">
+            <span>ID</span>
+            <span>Map</span>
+            <span>Winner</span>
+            <span>Score</span>
+            <span>MVP</span>
+            <span>Date</span>
+        </div>
+
+        <div id="log-container">
+        </div>
+
+        <div id="no-matches" style="text-align: center; padding: 20px; color: #666; display: none;">
+            No matches found. Upload a .gzr file to get started.
+        </div>
+
+        <div id="pagination" style="text-align:center; margin-top: 20px;">
+            <button id="prevPage">Prev</button>
+            <span id="page-indicator">1</span>
+            <button id="nextPage">Next</button>
+        </div>
+
+        <div id="loading" style="text-align: center; padding: 20px; display: none;">
+            Loading...
+        </div>
+
+    </div>
+
+    <script src="../static/js/settings.js"></script>
+    <script>
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('fileInput');
+        const logContainer = document.getElementById('log-container');
+        const loading = document.getElementById('loading');
+        const noMatches = document.getElementById('no-matches');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        // Highlight drop area when item is dragged over it.
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        dropArea.addEventListener('drop', handleDrop, false);
+        dropArea.addEventListener('click', () => fileInput.click());
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight(e) {
+            dropArea.classList.add('highlight');
+        }
+
+        function unhighlight(e) {
+            dropArea.classList.remove('highlight');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                uploadFile(files[0]);
+            }
+        }
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                uploadFile(file);
+            }
+        });
+
+        async function uploadFile(file) {
+            console.log('Starting upload for file:', file.name);
+            
+            // Validate file type (.gzr duh)
+            if (!file.name.toLowerCase().endsWith('.gzr')) {
+                alert('Please upload a .gzr file only.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const originalContent = dropArea.innerHTML;
+            dropArea.innerHTML = '<p>Processing...</p>';
+            
+            try {
+                console.log('Sending upload request...');
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (!data.success || data.error) {
+                    const errorMsg = data.error || 'Unknown error occurred';
+                    console.error('Upload failed:', errorMsg);
+                    alert("Upload failed: " + errorMsg);
+                    dropArea.innerHTML = originalContent;
+                    reattachFileInputListener();
+                    return;
+                }
+
+                console.log('Upload successful');
+                
+                // If match data, add to logs.
+                if (data.match_id) {
+                    addLogEntry(data);
+                    scrollToLogs();
+                } else {
+                    // Reload the matches list to get the latest data.
+                    await loadRecentMatches();
+                }
+
+                dropArea.innerHTML = originalContent;
+                reattachFileInputListener();
+                
+                fileInput.value = '';
+                
+            } catch (err) {
+                console.error('Upload error:', err);
+                alert("Something went wrong during upload: " + err.message);
+                dropArea.innerHTML = originalContent;
+                reattachFileInputListener();
+            }
+        }
+
+        function reattachFileInputListener() {
+            const newFileInput = document.getElementById('fileInput');
+            if (newFileInput) {
+                newFileInput.addEventListener('change', (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        uploadFile(file);
+                    }
+                });
+            }
+        }
+
+        function addLogEntry(data) {
+            const newEntry = document.createElement("div");
+            newEntry.className = "log-entry";
+            newEntry.dataset.matchId = data.match_id.replace('#', '');
+            newEntry.innerHTML = `
+                <div class="log-fields">
+                    <span>#${data.match_id}</span>
+                    <span>${data.map}</span>
+                    <span>${data.winner}</span>
+                    <span>${data.score}</span>
+                    <span>${data.mvp}</span>
+                    <span>${data.date}</span>
+                </div>
+            `;
+            
+            newEntry.addEventListener('click', function() {
+                const matchId = this.dataset.matchId;
+                window.location.href = `/match/${matchId}`;
+            });
+            
+            logContainer.prepend(newEntry);
+            
+            noMatches.style.display = 'none';
+        }
+
+        let currentPage = 1;
+        const matchesPerPage = 10;
+
+        async function loadRecentMatches(page = 1) {
+            loading.style.display = 'block';
+            noMatches.style.display = 'none';
+            logContainer.innerHTML = '';
+            
+            try {
+                const response = await fetch(`/api/matches?page=${page}&per_page=${matchesPerPage}`);
+                const data = await response.json();
+                
+                const matches = data.matches || [];
+                const total = data.total || 0;
+                const totalPages = Math.ceil(total / matchesPerPage);
+
+                if (page > totalPages && totalPages > 0) {
+                    await loadRecentMatches(Math.max(1, totalPages));
+                    return;
+                }
+
+                currentPage = page;
+
+                if (matches.length === 0 && total === 0) {
+                    noMatches.style.display = 'block';
+                    noMatches.textContent = 'No matches found. Upload a .gzr file to get started.';
+                } else if (matches.length === 0 && total > 0) {
+                    noMatches.style.display = 'block';
+                    noMatches.textContent = 'No matches on this page.';
+                } else {
+                    matches.forEach(match => {
+                        const entry = document.createElement("div");
+                        entry.className = "log-entry";
+                        entry.dataset.matchId = match.id;
+                        entry.innerHTML = `
+                            <div class="log-fields">
+                                <span>#${String(match.id).padStart(3, '0')}</span>
+                                <span>${match.map}</span>
+                                <span>${match.winner}</span>
+                                <span>${match.score}</span>
+                                <span>${match.mvp}</span>
+                                <span>${match.date}</span>
+                            </div>
+                        `;
+                        entry.addEventListener('click', () => {
+                            window.location.href = `/match/${match.id}`;
+                        });
+                        logContainer.appendChild(entry);
+                    });
+                }
+
+                updatePaginationUI(currentPage, totalPages);
+
+            } catch (error) {
+                console.error('Error loading matches:', error);
+                noMatches.style.display = 'block';
+                noMatches.textContent = 'Error loading matches. Please try again later.';
+                updatePaginationUI(1, 1); // Reset pagination on error.
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function updatePaginationUI(currentPage, totalPages) {
+            const pageIndicator = document.getElementById("page-indicator");
+            const prevBtn = document.getElementById("prevPage");
+            const nextBtn = document.getElementById("nextPage");
+            
+            if (pageIndicator) {
+                pageIndicator.innerText = totalPages > 0 ? `${currentPage}/${totalPages}` : '0/0';
+            }
+            
+            if (prevBtn) {
+                prevBtn.disabled = currentPage <= 1;
+            }
+            
+            if (nextBtn) {
+                nextBtn.disabled = currentPage >= totalPages || totalPages === 0;
+            }
+        }
+
+        function scrollToLogs() {
+            document.getElementById('logs').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Pagination event listeners only once.
+        function initializePagination() {
+            const prevBtn = document.getElementById("prevPage");
+            const nextBtn = document.getElementById("nextPage");
+            
+            if (prevBtn && nextBtn) {
+                // Prevent duplicates.
+                prevBtn.replaceWith(prevBtn.cloneNode(true));
+                nextBtn.replaceWith(nextBtn.cloneNode(true));
+                
+                const newPrevBtn = document.getElementById("prevPage");
+                const newNextBtn = document.getElementById("nextPage");
+                
+                newPrevBtn.addEventListener("click", () => {
+                    console.log('Prev button clicked, current page:', currentPage);
+                    if (currentPage > 1) {
+                        loadRecentMatches(currentPage - 1);
+                    }
+                });
+                
+                newNextBtn.addEventListener("click", () => {
+                    console.log('Next button clicked, current page:', currentPage);
+                    loadRecentMatches(currentPage + 1);
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded, initializing pagination and loading recent matches...');
+            
+            initializePagination();
+            
+            loadRecentMatches(1);
+        });
+    </script>
+</body>
+</html>
