@@ -17,11 +17,11 @@ See: Parsing.MD for parsing info guide.
 - Score
 - MVP (Player with highest damage)
 - Players:
-Username, Shotgun Type (Heavy/Small), Team, Win/Loss, Total Damage, Rounds played, Average damage (Also detects spectators)
+Username, Shotgun Type (Heavy/Small), Team, Win/Loss, Total Damage, Rounds played, Average damage, Spectators
 - Round-logs
 Players, RVP (Highest damage gain), Winning team, Current score, Player damage, Player damage gain, Player win/loss, Player team
 - Chat-logs
-Chat type (Red team, Blue team or All chat), order of which they appear in game. NOTE: Does not include usernames or date (Scroll down for reason)
+Chat type (Red team, Blue team or All chat), player name, order of which they appear in game, message.
 
 ### user-specific stats
 This is for logging of all users that have appeared within the replay files, including these stats:
@@ -34,6 +34,7 @@ This is for logging of all users that have appeared within the replay files, inc
 - RVP Count
 - Average damage per round
 - Match History (Including: Match ID, Date, Map Name, Gamemode, Win/Loss, Score, Total Damage, Average Damage, Rounds Played, MVP/RVP Count)
+- Chat Logs
 
 ## Usage:
 *Ensure you run -- pip install -r requirements.txt -- this will install all needed dependencies*
@@ -45,4 +46,3 @@ This is for logging of all users that have appeared within the replay files, inc
 ### Notes:
 - The data is mostly gargled nonsense, it contains tons of random dogshit making it somewhat difficult to extract specific events.
 - I couldn't find a way to correlate any data to Kills/Deaths, which is why it's lacking in that aspect (despite it being somewhat important), and yet I could quite easily find the difference between Normal SG/Heavy SG, reinforcing my point above.
-- Chat logs only state which chat it was sent in (Red/Blue team chat, or all chat), and the message in the order of which it appears. It has no date or user logging as it wasn't obvious in the hex.

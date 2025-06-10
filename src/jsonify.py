@@ -64,7 +64,7 @@ def calculate_win_rate(wins, losses, draws, include_draws_as_half_win=False):
     
     return round(win_rate, 2)
 
-def update_player_stats(player_stats, player_combined, mvp, rounds_info, match_id, map_name):
+def update_player_stats(player_stats, player_combined, mvp, rounds_info, match_id, map_name, chat_logs=None):
     round_mvps = {}
     for round_data in rounds_info:
         if round_data["rvp"]:
@@ -79,6 +79,34 @@ def update_player_stats(player_stats, player_combined, mvp, rounds_info, match_i
                 round_mvps[rvp_name] += 1
             else:
                 round_mvps[rvp_name] = 1
+    
+    # Process chat logs and count messages by player.
+    chat_stats_by_player = {}
+    if chat_logs:
+        for log in chat_logs:
+            player_name = log.get("player", "Unknown")
+            if player_name != "Unknown":
+                if player_name not in chat_stats_by_player:
+                    chat_stats_by_player[player_name] = {
+                        "total_messages": 0,
+                        "all_chat": 0,
+                        "team_chat": 0,
+                        "messages_this_match": []
+                    }
+                
+                chat_stats_by_player[player_name]["total_messages"] += 1
+                
+                if log["chat_type"] == "All":
+                    chat_stats_by_player[player_name]["all_chat"] += 1
+                else:  # Red or Blue team chat
+                    chat_stats_by_player[player_name]["team_chat"] += 1
+                
+                # Store message for this match
+                chat_stats_by_player[player_name]["messages_this_match"].append({
+                    "type": log["chat_type"],
+                    "message": log["message"],
+                    "team": log["player_team"]
+                })
     
     for player in player_combined:
         player_id = str(player["universal_id"])
@@ -100,7 +128,14 @@ def update_player_stats(player_stats, player_combined, mvp, rounds_info, match_i
                 "rvp_count": 0,
                 "rounds_played": 0,
                 "total_average_damage": 0,
-                "match_history": []
+                "match_history": [],
+                "chat_stats": {
+                    "total_messages": 0,
+                    "all_chat_messages": 0,
+                    "team_chat_messages": 0,
+                    "average_messages_per_match": 0.0,
+                    "chat_history": []
+                }
             }
         
         if player["team"] in player_stats[player_id]["team_counts"]:
@@ -132,8 +167,33 @@ def update_player_stats(player_stats, player_combined, mvp, rounds_info, match_i
         if player_name in round_mvps:
             player_stats[player_id]["rvp_count"] += round_mvps[player_name]
         
+        # Update chat statistics
+        if player_name in chat_stats_by_player:
+            chat_data = chat_stats_by_player[player_name]
+            player_stats[player_id]["chat_stats"]["total_messages"] += chat_data["total_messages"]
+            player_stats[player_id]["chat_stats"]["all_chat_messages"] += chat_data["all_chat"]
+            player_stats[player_id]["chat_stats"]["team_chat_messages"] += chat_data["team_chat"]
+            
+            # Add chat history for this match
+            match_chat_record = {
+                "match_id": match_id,
+                "map": map_name,
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "messages_count": chat_data["total_messages"],
+                "all_chat_count": chat_data["all_chat"],
+                "team_chat_count": chat_data["team_chat"],
+                "messages": chat_data["messages_this_match"]
+            }
+            player_stats[player_id]["chat_stats"]["chat_history"].append(match_chat_record)
+        
         player_stats[player_id]["matches_played"] += 1
         
+        # Update average messages per match (Arguably the most important stat to track)
+        if player_stats[player_id]["matches_played"] > 0:
+            player_stats[player_id]["chat_stats"]["average_messages_per_match"] = round(
+                player_stats[player_id]["chat_stats"]["total_messages"] / player_stats[player_id]["matches_played"], 2
+            )
+
         if player_stats[player_id]["matches_played"] > 0:
             player_stats[player_id]["total_average_damage"] = (
                 player_stats[player_id]["total_damage"] / player_stats[player_id]["rounds_played"] 
@@ -167,7 +227,8 @@ def update_player_stats(player_stats, player_combined, mvp, rounds_info, match_i
                 (isinstance(mvp, dict) and "name" in mvp and player_name == mvp["name"]) or
                 (isinstance(mvp, str) and player_name == mvp)
             ),
-            "rvp_count": round_mvps.get(player_name, 0)
+            "rvp_count": round_mvps.get(player_name, 0),
+            "chat_messages_count": chat_stats_by_player.get(player_name, {}).get("total_messages", 0)
         }
         player_stats[player_id]["match_history"].append(match_record)
     
@@ -323,7 +384,7 @@ if __name__ == "__main__":
                 "average_damage": dmg_data["average_damage"]
             }
             
-    updated_player_stats = update_player_stats(player_stats, player_combined, mvp, rounds_info, match_id, map_name)
+    updated_player_stats = update_player_stats(player_stats, player_combined, mvp, rounds_info, match_id, map_name, chat_logs_detailed)
     save_player_stats(updated_player_stats)
 
     match_json = {

@@ -274,49 +274,104 @@ def extract_round_stats_with_damage_full(file_path: Path):
     return rounds_info, score_red, score_blue, mvp, averages
 
 
-def extract_chat_logs(data: bytes):
+def extract_chat_logs(data: bytes, players):
+    if not players:
+        raise ValueError("Players list is required for chat log extraction")
+    
+    marker = b'\x00\x6D\xC3\x00'
     chat_logs = []
     pos = 0
     total = len(data)
-
+    
+    # Create lookup for player markers
+    player_markers = {}
+    for player in players:
+        if player.get('five_bytes_data') and player['five_bytes_data'] != "N/A":
+            try:
+                marker_bytes = bytes.fromhex(player['five_bytes_data'])
+                player_markers[marker_bytes] = player
+            except ValueError:
+                continue
+    
     while pos < total - 12:
         idx = data.find(marker, pos)
         if idx == -1:
             break
-
+            
         chat_type = data[idx + 4]
         if chat_type not in (0x00, 0x02, 0x03):
             pos = idx + 1
             continue
-
+            
         label = {
             0x00: 'All',
             0x02: 'Red',
             0x03: 'Blue'
         }[chat_type]
-
-        # The message typically starts after 00 6D C3 00 [label] 00 00 00 ?? 00 => offset + 11
+        
+        # The message typically starts after 00 6D C3 00 [label] 00 00 00 ?? 00 => offset + 10
         message_start = idx + 10
         message_bytes = b''
-
-        while message_start < total and data[message_start] != 0x00:
-            message_bytes += bytes([data[message_start]])
-            message_start += 1
-
+        message_end = message_start
+        
+        while message_end < total and data[message_end] != 0x00:
+            message_bytes += bytes([data[message_end]])
+            message_end += 1
+        
         words = message_bytes.split(b'\x20')
-        message = ' '.join(w.decode('utf-8', errors='ignore') for w in words)
-        chat_logs.append((label, message))
-
-        pos = message_start + 1
-
+        message = ' '.join(w.decode('utf-8', errors='ignore') for w in words if w)
+        
+        # Search for player marker near chat message (The same ID defined in the extract_players_from_offsets function)
+        player = None
+        search_start = message_end + 1
+        search_end = min(search_start + 28, total)
+        
+        for search_pos in range(search_start, search_end - 4):
+            for marker_bytes, player_info in player_markers.items():
+                if len(marker_bytes) == 5:
+                    if data[search_pos:search_pos + 5] == marker_bytes:
+                        player = player_info
+                        break
+            if player:
+                break
+        
+        # Create chat log entry with player info.
+        chat_log = {
+            "chat_type": label,
+            "message": message,
+            "marker_position": f"0x{idx:X}",
+            "message_start": f"0x{message_start:X}",
+            "message_end": f"0x{message_end:X}",
+            "message_length": len(message_bytes),
+            "player": player['name'] if player else "Unknown",
+            "player_team": player['team'] if player else "Unknown",
+            "player_universal_id": player['universal_id'] if player else "Unknown",
+            "player_marker": player['five_bytes_data'] if player else "N/A"
+        }
+        
+        chat_logs.append(chat_log)
+        pos = message_end + 1
+    
     return chat_logs
 
-def extract_all_chat_logs(file_path: Path):
+def extract_all_chat_logs(file_path, players):
+    if not players:
+        raise ValueError("Players list is required for chat log extraction")
+        
     with open(file_path, 'rb') as f:
         data = f.read()
-
-    chat_logs = extract_chat_logs(data)
+    
+    chat_logs = extract_chat_logs(data, players)
     return chat_logs
+
+def extract_complete_match_data(file_path):
+    # First extract players.
+    players, universal_ids = extract_players_from_offsets(file_path)
+    
+    # Then extract chat logs with player correlation.
+    chat_logs = extract_all_chat_logs(file_path, players)
+    
+    return players, chat_logs
 
 def extract_players_from_offsets(file_path, universal_ids=None):
     if universal_ids is None:
@@ -436,7 +491,13 @@ def extract_players_from_offsets(file_path, universal_ids=None):
                         player_team = "Blue"
                     else:
                         player_team = f"Unknown ({int.from_bytes(team_byte, byteorder='little') if team_byte else 'null'})"
-               
+
+                # Seeks 537 bytes after the name start position, this is for player identification across the file.
+                marker_pos = name_start_pos + 537
+                f.seek(marker_pos)
+                five_bytes = f.read(5)
+                five_bytes_hex = five_bytes.hex().upper() if five_bytes else "N/A"
+
                 if player_name not in universal_ids:
                     next_id = 1
                     if universal_ids:
@@ -450,6 +511,7 @@ def extract_players_from_offsets(file_path, universal_ids=None):
                     "team": player_team,
                     "universal_id": universal_ids[player_name],
                     "shotgun_type": shotgun_type,
+                    "five_bytes_data": five_bytes_hex,
                     "file_owner": file_owner_status # File owner = Player name that recorded the .gzr file, I had to speculate considering nobody else would respond to my begging of a FxpGunZ Ladder .gzr file (Fuck you guys)
                 }
                 players.append(player_info)
