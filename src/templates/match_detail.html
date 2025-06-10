@@ -100,6 +100,15 @@
                 </div>
             </div>
 
+            <div class="spectator-stats-section" id="spectator-stats-section" style="display: none;">
+                <div class="stats-card">
+                    <h3>Spectators</h3>
+                    <div class="player-list" id="spectator-team">
+
+                    </div>
+                </div>
+            </div>
+
             <div class="rounds-section">
                 <div class="stats-card">
                     <h3>Round by Round <span style="font-size: 0.8em; color: #666;">(Click to view details)</span></h3>
@@ -194,6 +203,33 @@
         });
     }
 
+    function collectSpectatorData(rounds) {
+        const spectatorData = {};
+        
+        rounds.forEach(round => {
+            if (round.players) {
+                round.players.forEach(player => {
+                    if (player.team === 'Spectator') {
+                        if (!spectatorData[player.name]) {
+                            spectatorData[player.name] = {
+                                name: player.name,
+                                total_damage: 0,
+                                rounds_participated: [],
+                                total_rounds: 0
+                            };
+                        }
+                        
+                        spectatorData[player.name].total_damage += player.damage || 0;
+                        spectatorData[player.name].rounds_participated.push(round.round_id);
+                        spectatorData[player.name].total_rounds += 1;
+                    }
+                });
+            }
+        });
+        
+        return Object.values(spectatorData);
+    }
+
     function displayMatchData(data) {
         const match = data.Match || {};
         
@@ -257,6 +293,13 @@
         
         displayTeam('red-team', redPlayers, 'red', mvp.name);
         displayTeam('blue-team', bluePlayers, 'blue', mvp.name);
+                
+        // Handle spectator players
+        const spectatorPlayers = collectSpectatorData(match.rounds || []);
+        if (spectatorPlayers.length > 0) {
+            displaySpectatorTeam('spectator-team', spectatorPlayers, mvp.name);
+            document.getElementById('spectator-stats-section').style.display = 'block';
+        }
         
         displayRounds(match.rounds || []);
         
@@ -315,6 +358,47 @@
         });
     }
 
+    function displaySpectatorTeam(containerId, spectatorPlayers, mvpName) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        
+        // Sort spectator players by total damage (highest first)
+        spectatorPlayers.sort((a, b) => (b.total_damage || 0) - (a.total_damage || 0));
+        
+        spectatorPlayers.forEach(player => {
+            const playerCard = document.createElement('div');
+            playerCard.className = 'player-card player-spectator';
+            
+            const roundsList = player.rounds_participated.sort((a, b) => a - b).join(', ');
+            const averageDamage = player.total_rounds > 0 ? (player.total_damage / player.total_rounds).toFixed(1) : '0.0';
+            
+            playerCard.innerHTML = `
+                <div class="player-header">
+                    <div class="player-name">
+                        <a href="/player/${encodeURIComponent(player.name || 'Unknown')}" class="player-link">
+                            ${player.name || 'Unknown'}
+                        </a>
+                    </div>
+                    <div class="player-result spectator-badge">
+                        Spectator
+                    </div>
+                </div>
+                <div class="player-stats">
+                    <div class="stat-row">
+                        <span>Rounds:</span>
+                        <span>${player.total_rounds}</span>
+                    </div>
+                    <div class="stat-row spectator-rounds">
+                        <span>Participated in:</span>
+                        <span>Round${player.total_rounds > 1 ? 's' : ''} ${roundsList}</span>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(playerCard);
+        });
+    }
+
     function displayRounds(rounds) {
         const container = document.getElementById('rounds-grid');
         container.innerHTML = '';
@@ -358,8 +442,13 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message chat-${chat.type.toLowerCase()}`;
             
-            const teamLabel = chat.type === 'All' ? '[ALL]' : `[${chat.type.toUpperCase()}]`;
-            messageDiv.innerHTML = `<strong>${teamLabel}</strong> ${chat.message}`;
+            let teamLabel = chat.type === 'All' ? '[ALL]' : `[${chat.type.toUpperCase()}]`;
+            if (chat.type === 'All' || chat.type === 'Red') {
+            teamLabel += ' ';  // Add extra space for All and Red, ensuring equal space (Otherwise Blue names are forwarded by 1)
+            }
+
+            const playerLabel = chat.player ? `[${chat.player}]` : '';
+            messageDiv.innerHTML = `<strong>${teamLabel}${playerLabel}</strong> ${chat.message}`;
             
             container.appendChild(messageDiv);
         });
