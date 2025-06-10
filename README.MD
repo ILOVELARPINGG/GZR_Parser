@@ -1,6 +1,6 @@
 # Overview
 *(Scroll to bottom for usage guide)*
-This is a FxpGunZ specific Replay-File (.gzr) parser, extracting useful and important data seen within the match. I plan to expand this in order to falsify cheating/in-game comm abuse, since these braindead Brazilians can't stay quiet. <3
+This is a FxpGunZ specific Replay-File (.gzr) parser, extracting useful and important data seen within the match.
 See: Parsing.MD for parsing info guide.
 
 *Sharp, CO5INE, unban me from your Discord and unmute me in-game, else your Server is DOOMED. I repeat, DOOMED. I will ask Lil B to curse this server for eternity, leaving it to perish.*
