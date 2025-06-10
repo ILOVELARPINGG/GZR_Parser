@@ -20,6 +20,7 @@
 - Decode as UTF-8
 - If name is under 3 characters, it doesn't include it
 *Reads from the start of the player name, then 537 bytes forward for a 5 byte hex pattern. This is a player identification used in the match for tracking events.*
+
 *Reads from the player name, up to 1000 bytes forward (this is more than enough), until it finds one of these*
 - Normal SG (6/24):   \x00\x00\x00\x00\x18\x00\x00\x00\x06\x00\x00\x00\x18\x00\x00\x00\x06
 - Heavy SG (3/12):    \x00\x00\x00\x00\x0C\x00\x00\x00\x03\x00\x00\x00\x0C\x00\x00\x00\x03
@@ -47,7 +48,8 @@
 - 0x00 (All chat)
 - 0x02 (Red chat)
 - 0x03 (Blue chat)
-*To extract the message itself, look 10 bytes after the marker, and extract everything converting it to ASCII, until the first null byte (0x00)
+*To extract the message itself, look 10 bytes after the marker, and extract everything converting it to ASCII, until the first null byte (0x00)*
+
 *Then search up to 28 bytes forward for a pattern that matches a players identification (00 {?? ?? ??} 00), the chat message belongs to this player*
 ---
 
