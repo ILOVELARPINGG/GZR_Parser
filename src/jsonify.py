@@ -277,8 +277,19 @@ if __name__ == "__main__":
     
     rounds_info, score_red, score_blue, mvp, averages = extract_round_stats_with_damage_full(decompressed_path)
    
-    chat_logs_raw = extract_all_chat_logs(decompressed_path)
-    chat_logs = [{"type": t, "message": m} for t, m in chat_logs_raw]
+    # FIXED: Pass players to extract_all_chat_logs.
+    chat_logs_detailed = extract_all_chat_logs(decompressed_path, players)
+    
+    # Convert detailed chat logs to simplified format for JSON output.
+    chat_logs = []
+    for log in chat_logs_detailed:
+        chat_logs.append({
+            "type": log["chat_type"],
+            "message": log["message"],
+            "player": log["player"],
+            "team": log["player_team"],
+            "universal_id": log["player_universal_id"]
+        })
    
     # Defining winner since I forgot to in logic.py (Higher score = Winner)
     def determine_winner():
