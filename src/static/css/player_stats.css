@@ -388,3 +388,110 @@ body {
         min-width: 50px;
     }
 }
+
+.chat-section {
+    background: rgba(15, 15, 15, 0.5);
+    border-radius: 4px;
+    padding: 20px;
+    border: 1px solid #333;
+    margin-bottom: 30px;
+    transition: all 0.2s ease;
+}
+
+.chat-section:hover {
+    background: rgba(30, 30, 30, 0.7);
+    border-color: #555;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.chat-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    color: #ffffff;
+    border-bottom: 1px solid #444;
+    padding-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 400;
+}
+
+.chat-match.toggle-header {
+    display: grid;
+    grid-template-columns: 80px 1fr 120px 120px 120px auto;
+    gap: 20px;
+    padding: 15px 20px;
+    background: rgba(20, 20, 20, 0.8);
+    font-weight: bold;
+    border-bottom: 1px solid #444;
+    border-radius: 4px 4px 0 0;
+    font-size: 0.85rem;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.5 ease-in-out;
+}
+
+.chat-match.toggle-header:hover {
+    background: rgba(30, 30, 30, 0.9);
+}
+
+.chat-match.toggle-header:not(:first-child) {
+    border-top: 1px solid #444;
+    border-radius: 0;
+}
+
+.chat-match.toggle-header:last-of-type {
+    border-radius: 0 0 4px 4px;
+}
+
+.chat-log {
+    background: rgba(15, 15, 15, 0.3);
+    border-radius: 0 0 4px 4px;
+    padding: 15px;
+    border-top: none;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: monospace;
+    margin-bottom: 0;
+}
+
+.chat-message {
+    margin-bottom: 6px;
+    padding: 6px 10px;
+    border-radius: 2px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.chat-red {
+    background: rgba(220, 53, 69, 0.1);
+    border-left: 2px solid #ff6b6b;
+}
+
+.chat-blue {
+    background: rgba(0, 123, 255, 0.1);
+    border-left: 2px solid #4da6ff;
+}
+
+.chat-all {
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 2px solid #666;
+}
+
+/* Arrow styling */
+.arrow {
+    display: inline-block;
+    transition: transform 0.3s ease;
+    
+}
+
+.arrow-container {
+    margin-left: auto;
+    text-align: right;
+}
