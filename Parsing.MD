@@ -51,6 +51,7 @@
 *To extract the message itself, look 10 bytes after the marker, and extract everything converting it to ASCII, until the first null byte (0x00)*
 
 *Then search up to 28 bytes forward for a pattern that matches a players identification (00 {?? ?? ??} 00), the chat message belongs to this player*
+
 ---
 
 ## Jsonify.py
