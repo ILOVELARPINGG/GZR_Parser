@@ -88,6 +88,13 @@
                     <div id="blue-players">
                     </div>
                 </div>
+
+            <div class="spectator-section" id="spectator-section" style="display: none;">
+                <div class="team-card spectator">
+                    <div class="team-title spectator">Spectators</div>
+                    <div id="spectator-players">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -157,9 +164,16 @@
             
             const redPlayers = (round.players || []).filter(p => p.team === 'Red');
             const bluePlayers = (round.players || []).filter(p => p.team === 'Blue');
+            const spectatorPlayers = (round.players || []).filter(p => p.team === 'Spectator');
             
             displayTeamPlayers('red-players', redPlayers, 'red', rvp.name);
             displayTeamPlayers('blue-players', bluePlayers, 'blue', rvp.name);
+            
+            // Show spectator section only if there are spectator players.
+            if (spectatorPlayers.length > 0) {
+                displayTeamPlayers('spectator-players', spectatorPlayers, 'spectator');
+                document.getElementById('spectator-section').style.display = 'block';
+            }
             
             document.getElementById('loading').style.display = 'none';
             document.getElementById('round-content').style.display = 'block';
