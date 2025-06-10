@@ -97,8 +97,51 @@
             }
         }
         
+        // Arrow, used in chat logs to show they're expandable.
+        function createArrowIcon() {
+            return `<span class="arrow">&#x25BC;</span>`;
+        }
+        
+        function initializeChatToggle() {
+            const toggleHeaders = document.querySelectorAll('.toggle-header');
+            
+            toggleHeaders.forEach((header, idx) => {
+                header.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation(); // Stop event bubbling.
+                    
+                    const index = this.getAttribute('data-index');
+                    const content = document.querySelector(`.toggle-content[data-index="${index}"]`);
+                    const arrow = this.querySelector('.arrow');
+                                        
+                    if (content) {
+                        // Toggle visibility.
+                        const isHidden = content.style.display === 'none' || content.style.display === '';
+                        
+                        if (isHidden) {
+                            content.style.display = 'block';
+                            // Rotate arrow down (expanded)
+                            if (arrow) {
+                                arrow.style.transform = 'rotate(0deg)';
+                            }
+                            console.log('Expanded content for index:', index);
+                        } else {
+                            content.style.display = 'none';
+                            // Rotate arrow right (collapsed)
+                            if (arrow) {
+                                arrow.style.transform = 'rotate(-90deg)';
+                            }
+                            console.log('Collapsed content for index:', index);
+                        }
+                    } else {
+                        console.error('Could not find content for index:', index);
+                    }
+                });
+            });
+        }
+
         function displayPlayerProfile(player) {
-            const winRate = player.win_rate.toFixed(1);
+            const winRate = (player.win_rate || 0).toFixed(1);
             const lossRate = player.matches_played > 0 ? ((player.losses / player.matches_played) * 100).toFixed(1) : '0.0';
             const drawRate = player.matches_played > 0 ? ((player.draws / player.matches_played) * 100).toFixed(1) : '0.0';
             
@@ -116,18 +159,58 @@
                             <span>Avg DMG</span>
                         </div>
                         ${player.match_history.map(match => {
-                            const date = new Date(match.date).toLocaleDateString();
-                            const resultClass = match.result.toLowerCase();
-                            const teamClass = match.team.toLowerCase();
+                            const resultClass = (match.result || '').toLowerCase();
+                            const teamClass = (match.team || '').toLowerCase();
                             
                             return `
                                 <div class="match-entry" onclick="window.location.href='/match/${match.match_id}'">
-                                    <span class="match-id">#${String(match.match_id).padStart(3, '0')}</span>
-                                    <span>${match.map}</span>
-                                    <span class="team-badge team-${teamClass}">${match.team}</span>
-                                    <span class="match-result ${resultClass}">${match.result}</span>
-                                    <span>${match.damage}</span>
-                                    <span>${match.average_damage.toFixed(1)}</span>
+                                <span class="match-id">#${String(match.match_id || '000').padStart(3, '0')}</span>
+                                <span>${match.map || 'Unknown'}</span>
+                                <span class="team-badge team-${teamClass}">${match.team || 'Unknown'}</span>
+                                <span class="match-result ${resultClass}">${match.result || 'Unknown'}</span>
+                                <span>${match.damage || 0}</span>
+                                <span>${(match.average_damage || 0).toFixed(1)}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+        
+        let chatLogsHtml = '';
+        if (player.chat_stats && player.chat_stats.chat_history && player.chat_stats.chat_history.length > 0) {
+            chatLogsHtml = `
+                <div class="chat-section">
+                    <h3>Chat Logs</h3>
+                    ${player.chat_stats.chat_history.map((chatMatch, index) => {
+                        const arrow = createArrowIcon();
+                        return `
+                        <div class="match-entry chat-match toggle-header" data-index="${index}">
+                            <span class="match-id">#${String(chatMatch.match_id || '000').padStart(3, '0')}</span>
+                            <span>${chatMatch.map || 'Unknown'}</span>
+                            <span>Messages: ${chatMatch.messages_count || 0}</span>
+                            <span>All Chat: ${chatMatch.all_chat_count || 0}</span>
+                            <span>Team Chat: ${chatMatch.team_chat_count || 0}</span>
+                            <span class="arrow-container">${arrow}</span>
+                        </div>
+                        <div class="chat-log toggle-content" data-index="${index}" style="display: none;">
+                            ${(chatMatch.messages || []).map(msg => {
+                                // Determine chat type class.
+                                let chatClass = 'chat-all';
+                                let teamLabel = '[ALL]';
+                                
+                                if (msg.type && msg.type.toLowerCase() === 'red') {
+                                    chatClass = 'chat-red';
+                                    teamLabel = '[RED]';
+                                } else if (msg.type && msg.type.toLowerCase() === 'blue') {
+                                    chatClass = 'chat-blue';
+                                    teamLabel = '[BLUE]';
+                                } else if (msg.type && msg.type.toLowerCase() === 'team') {
+                                    teamLabel = '[TEAM]';
+                                }
+                                
+                                return `<div class="chat-message ${chatClass}"><strong>${teamLabel}</strong> ${msg.message || ''}</div>`;
+                            }).join('')}
                                 </div>
                             `;
                         }).join('')}
@@ -137,12 +220,12 @@
             
             const content = `
                 <div class="player-header">
-                    <h1 class="player-name">${player.name}</h1>
+                    <h1 class="player-name">${player.name || 'Unknown Player'}</h1>
                 </div>
                 
                 <div class="player-summary">
                     <div class="summary-card">
-                        <div class="summary-value">${player.matches_played}</div>
+                        <div class="summary-value">${player.matches_played || 0}</div>
                         <div class="summary-label">Total Matches</div>
                     </div>
                     <div class="summary-card">
@@ -150,11 +233,11 @@
                         <div class="summary-label">Win Rate</div>
                     </div>
                     <div class="summary-card">
-                        <div class="summary-value">${player.total_damage}</div>
+                        <div class="summary-value">${player.total_damage || 0}</div>
                         <div class="summary-label">Total Damage</div>
                     </div>
                     <div class="summary-card">
-                        <div class="summary-value">${player.total_average_damage.toFixed(1)}</div>
+                        <div class="summary-value">${(player.total_average_damage || 0).toFixed(1)}</div>
                         <div class="summary-label">Avg Damage</div>
                     </div>
                 </div>
@@ -163,23 +246,23 @@
                     <h3>Detailed Statistics</h3>
                     <div class="stat-row">
                         <span>Matches Played</span>
-                        <span>${player.matches_played}</span>
+                        <span>${player.matches_played || 0}</span>
                     </div>
                     <div class="stat-row">
                         <span>Rounds Played</span>
-                        <span>${player.rounds_played}</span>
+                        <span>${player.rounds_played || 0}</span>
                     </div>
                     <div class="stat-row">
                         <span>Wins</span>
-                        <span>${player.wins}</span>
+                        <span>${player.wins || 0}</span>
                     </div>
                     <div class="stat-row">
                         <span>Losses</span>
-                        <span>${player.losses}</span>
+                        <span>${player.losses || 0}</span>
                     </div>
                     <div class="stat-row">
                         <span>Draws</span>
-                        <span>${player.draws}</span>
+                        <span>${player.draws || 0}</span>
                     </div>
                     <div class="stat-row">
                         <span>Win Rate</span>
@@ -195,37 +278,48 @@
                     </div>
                     <div class="stat-row">
                         <span>Total Damage Dealt</span>
-                        <span>${player.total_damage}</span>
+                        <span>${player.total_damage || 0}</span>
                     </div>
                     <div class="stat-row">
                         <span>Average Damage per Match</span>
-                        <span>${player.total_average_damage.toFixed(1)}</span>
+                        <span>${player.total_average_damage || 0.toFixed(1)}</span>
                     </div>
                     <div class="stat-row">
                         <span>MVP Awards</span>
-                        <span>${player.mvp_count}</span>
+                        <span>${player.mvp_count || 0}</span>
                     </div>
                     <div class="stat-row">
                         <span>RVP Awards</span>
-                        <span>${player.rvp_count}</span>
+                        <span>${player.rvp_count || 0}</span>
                     </div>
                     <div class="stat-row">
                         <span>Red Team Games</span>
-                        <span>${player.team_counts.Red}</span>
+                        <span>${(player.team_counts && player.team_counts.Red) || 0}</span>
                     </div>
                     <div class="stat-row">
                         <span>Blue Team Games</span>
-                        <span>${player.team_counts.Blue}</span>
+                        <span>${(player.team_counts && player.team_counts.Blue) || 0}</span>
                     </div>
                 </div>
                 
                 ${matchHistoryHtml}
+                ${chatLogsHtml}
+
             `;
-            
-            document.getElementById('playerContent').innerHTML = content;
+        
+            const playerContentEl = document.getElementById('playerContent');
+            if (playerContentEl) {
+                playerContentEl.innerHTML = content;
+                
+                // Initialize chat toggle functionality.
+                setTimeout(() => {
+                    initializeChatToggle();
+                }, 10); // Small delay to ensure DOM is updated.
+            } else {
+                console.error('Could not find playerContent element');
+            }
         }
         
-        // Load player data when page loads.
         document.addEventListener('DOMContentLoaded', loadPlayerData);
     </script>
 </body>
