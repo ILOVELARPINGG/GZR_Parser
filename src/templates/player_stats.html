@@ -282,7 +282,7 @@
                     </div>
                     <div class="stat-row">
                         <span>Average Damage per Match</span>
-                        <span>${player.total_average_damage || 0.toFixed(1)}</span>
+                        <span>${(player.total_average_damage || 0).toFixed(1)}</span>
                     </div>
                     <div class="stat-row">
                         <span>MVP Awards</span>
@@ -304,7 +304,6 @@
                 
                 ${matchHistoryHtml}
                 ${chatLogsHtml}
-
             `;
         
             const playerContentEl = document.getElementById('playerContent');
