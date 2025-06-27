@@ -145,6 +145,41 @@
             const lossRate = player.matches_played > 0 ? ((player.losses / player.matches_played) * 100).toFixed(1) : '0.0';
             const drawRate = player.matches_played > 0 ? ((player.draws / player.matches_played) * 100).toFixed(1) : '0.0';
             
+            let mapStatsHtml = '';
+            if (player.map_stats && Object.keys(player.map_stats).length > 0) {
+                mapStatsHtml = `
+                    <div class="detailed-stats">
+                        <h3>Map Statistics</h3>
+                        <div class="match-header" style="grid-template-columns: 120px 80px 80px 80px 80px 100px 100px;">
+                            <span>Map</span>
+                            <span>Played</span>
+                            <span>Wins</span>
+                            <span>Losses</span>
+                            <span>Draws</span>
+                            <span>Win Rate</span>
+                            <span>Pick Rate</span>
+                        </div>
+                        ${Object.entries(player.map_stats).map(([mapName, stats]) => {
+                            const winRate = stats.matches_played > 0 ? 
+                                ((stats.wins || 0) / stats.matches_played * 100).toFixed(1) : 
+                                '0.0';
+                            
+                            return `
+                                <div class="match-entry" style="grid-template-columns: 120px 80px 80px 80px 80px 100px 100px;">
+                                    <span class="match-id">${mapName}</span>
+                                    <span>${stats.matches_played || 0}</span>
+                                    <span style="color: #5cb85c;">${stats.wins || 0}</span>
+                                    <span style="color: #ff6b6b;">${stats.losses || 0}</span>
+                                    <span style="color: #ffc107;">${stats.draws || 0}</span>
+                                    <span style="color: #4da6ff;">${winRate}%</span>
+                                    <span style="color: #ffc107;">${(stats.pick_rate || 0).toFixed(1)}%</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
             let matchHistoryHtml = '';
             if (player.match_history && player.match_history.length > 0) {
                 matchHistoryHtml = `
@@ -301,11 +336,12 @@
                         <span>${(player.team_counts && player.team_counts.Blue) || 0}</span>
                     </div>
                 </div>
-                
+            
+                ${mapStatsHtml}
                 ${matchHistoryHtml}
                 ${chatLogsHtml}
             `;
-        
+
             const playerContentEl = document.getElementById('playerContent');
             if (playerContentEl) {
                 playerContentEl.innerHTML = content;

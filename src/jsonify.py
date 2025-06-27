@@ -128,6 +128,7 @@ def update_player_stats(player_stats, player_combined, mvp, rounds_info, match_i
                 "rvp_count": 0,
                 "rounds_played": 0,
                 "total_average_damage": 0,
+                "map_stats": {},
                 "match_history": [],
                 "chat_stats": {
                     "total_messages": 0,
@@ -138,6 +139,20 @@ def update_player_stats(player_stats, player_combined, mvp, rounds_info, match_i
                 }
             }
         
+        if "map_stats" not in player_stats[player_id]:
+            player_stats[player_id]["map_stats"] = {}
+        
+        if map_name not in player_stats[player_id]["map_stats"]:
+            player_stats[player_id]["map_stats"][map_name] = {
+                "matches_played": 0,
+                "wins": 0,
+                "losses": 0,
+                "draws": 0,
+                "win_rate": 0.0,
+                "win_rate_with_draws": 0.0,
+                "pick_rate": 0.0
+            }
+
         if player["team"] in player_stats[player_id]["team_counts"]:
             player_stats[player_id]["team_counts"][player["team"]] += 1
         else:
@@ -146,11 +161,15 @@ def update_player_stats(player_stats, player_combined, mvp, rounds_info, match_i
         match_result = player["match_result"]
         if match_result == "Win":
             player_stats[player_id]["wins"] += 1
+            player_stats[player_id]["map_stats"][map_name]["wins"] += 1
         elif match_result == "Loss":
             player_stats[player_id]["losses"] += 1
+            player_stats[player_id]["map_stats"][map_name]["losses"] += 1
         else:
             player_stats[player_id]["draws"] += 1
+            player_stats[player_id]["map_stats"][map_name]["draws"] += 1
         
+        player_stats[player_id]["map_stats"][map_name]["matches_played"] += 1
         player_stats[player_id]["total_damage"] += player.get("total_damage", 0)
         player_stats[player_id]["rounds_played"] += player.get("rounds_played", 0)
         
@@ -214,6 +233,21 @@ def update_player_stats(player_stats, player_combined, mvp, rounds_info, match_i
             include_draws_as_half_win=True
         )
         
+        map_stats = player_stats[player_id]["map_stats"][map_name]
+        map_stats["win_rate"] = calculate_win_rate(
+            map_stats["wins"],
+            map_stats["losses"],
+            map_stats["draws"],
+            include_draws_as_half_win=False
+        )
+
+        map_stats["win_rate_with_draws"] = calculate_win_rate(
+            map_stats["wins"],
+            map_stats["losses"],
+            map_stats["draws"],
+            include_draws_as_half_win=True
+        )
+
         match_record = {
             "match_id": match_id,
             "map": map_name,
@@ -232,6 +266,13 @@ def update_player_stats(player_stats, player_combined, mvp, rounds_info, match_i
         }
         player_stats[player_id]["match_history"].append(match_record)
     
+    for player_id in player_stats:
+        total_matches = player_stats[player_id]["matches_played"]
+        if total_matches > 0:
+            for map_name in player_stats[player_id]["map_stats"]:
+                map_matches = player_stats[player_id]["map_stats"][map_name]["matches_played"]
+                player_stats[player_id]["map_stats"][map_name]["pick_rate"] = round((map_matches / total_matches) * 100, 2)
+
     return player_stats
 
 if __name__ == "__main__":
